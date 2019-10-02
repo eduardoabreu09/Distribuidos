@@ -9,3 +9,5 @@ Se quiserem tentar instalar o react, seguir os passos abaixo:
 * Instalar o Android Studio (tutorial: https://codeburst.io/setting-up-development-environment-using-react-native-on-windows-dd240e69f776)
 * Rodar o projeto com react-native run-android
 * Se não rodar tentar de novo ou executar npm install
+
+Comando para gerar sensor_pb.js protoc --proto_path=./ --js_out=import_style=commonjs,binary:./ sensor.proto 
