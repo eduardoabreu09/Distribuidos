@@ -1,29 +1,44 @@
-import React, {Component} from 'react';
-import {Platform, StyleSheet, Text, View} from 'react-native';
+import React, { Component } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Button } from 'native-base'
 
-const instructions = Platform.select({
-  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
-  android:
-    'Double tap R on your keyboard to reload,\n' +
-    'Shake or press menu button for dev menu',
-});
 const sensor_pb = require('./src/util/sensor_pb.js');
 export default class App extends Component{
-  
-  componentDidMount = () => {
-    console.log(sensor_pb);
-    let sensor = new sensor_pb.Sensor();
-    let message = new sensor_pb.CommandMessage();
-    console.log(sensor);
-    console.log(message);
+  constructor(props) {
+    super(props);
+    this.state = { 
+      sensor: new sensor_pb.Sensor()
+     };
+  };
+
+  _setState = (num) => {
+    this.state.sensor.setState(num);
+    let sensor = this.state.sensor;
+    this.setState({sensor})
+  }
+
+  _resetState = () => {
+    this.state.sensor.setState(0);
+    let sensor = this.state.sensor;
+    this.setState({sensor})
   }
 
   render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>Welcome to React Native!</Text>
-        <Text style={styles.instructions}>To get started, edit App.js</Text>
-        <Text style={styles.instructions}>{instructions}</Text>
+        <Text style={styles.welcome}>Teste do objeto</Text>
+        <Button 
+          style = {styles.button}
+          onPress = { () => { this._setState(10) }}>
+          <Text style = {styles.buttonText}>Clicar</Text>
+        </Button>
+        <Text style={styles.instructions}>Medição do sensor</Text>
+        <Text>{ this.state.sensor.getState() }</Text>
+        <Button 
+          style = {styles.buttonReset}
+          onPress = { () => { this._resetState() }}>
+          <Text style = {styles.buttonText}>Reset</Text>
+        </Button>
       </View>
     );
   }
@@ -38,6 +53,8 @@ const styles = StyleSheet.create({
   },
   welcome: {
     fontSize: 20,
+    fontWeight:'bold',
+    fontFamily:'lato',
     textAlign: 'center',
     margin: 10,
   },
@@ -46,4 +63,24 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 5,
   },
+  button: {
+    width:"90%",
+    height:40,
+    alignItems:'center',
+    justifyContent:'center'
+  },
+  buttonReset: {
+    width:"30%",
+    height:40,
+    alignSelf:'flex-end',
+    justifyContent:'center',
+    marginRight:10,
+    marginTop:200
+  },
+  buttonText:{
+    fontSize:20,
+    color:'#fff',
+    fontFamily:'lato',
+    fontWeight:'bold'
+  }
 });

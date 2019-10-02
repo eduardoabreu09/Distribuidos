@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "google-protobuf": "^3.9.2",
+    "native-base": "^2.13.8",
     "react": "16.6.3",
     "react-native": "0.58.6"
   },
