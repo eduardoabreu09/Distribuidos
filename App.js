@@ -1,12 +1,3 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow
- * @lint-ignore-every XPLATJSCOPYRIGHT1
- */
-
 import React, {Component} from 'react';
 import {Platform, StyleSheet, Text, View} from 'react-native';
 
@@ -16,8 +7,17 @@ const instructions = Platform.select({
     'Double tap R on your keyboard to reload,\n' +
     'Shake or press menu button for dev menu',
 });
-
+const sensor_pb = require('./src/util/sensor_pb.js');
 export default class App extends Component{
+  
+  componentDidMount = () => {
+    console.log(sensor_pb);
+    let sensor = new sensor_pb.Sensor();
+    let message = new sensor_pb.CommandMessage();
+    console.log(sensor);
+    console.log(message);
+  }
+
   render() {
     return (
       <View style={styles.container}>

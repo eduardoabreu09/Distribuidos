@@ -1,0 +1,28 @@
+syntax = "proto2";
+
+message Sensor {
+
+	enum SensorType{
+		TEMPERATURE = 0;
+		LIGHT = 1;
+		LUMINOSITY = 2;
+	}
+
+	required SensorType type = 1;
+	required int32 id = 2;
+	required float state = 3;
+}
+
+
+message CommandMessage {
+
+	enum CommandType{
+		GET_STATE = 0;
+		SET_STATE = 1;
+		SENSOR_STATE = 2;
+	}
+
+	required CommandType command = 1;
+	optional Sensor parameter = 2;
+}
+
