@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image, Switch } from 'react-native';
 import { Container, Header, Title, Body, Left, Content} from 'native-base'
 import { Icon, Button } from 'react-native-elements';
+import {NativeModules} from 'react-native';
+var tcpClient = NativeModules.TCPClient;
 
 const sensor_pb = require('./src/util/sensor_pb.js');
 export default class App extends Component{
