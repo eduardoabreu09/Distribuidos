@@ -17,24 +17,27 @@ export default class App extends Component{
      };
   };
 
+  _errorConnect = (err) => {
+    this.setState({disabled:false});
+    alert(err);
+  }
+
+  _successConnect = (suc) => {
+    this.setState({isConnected:true})
+    console.log('Deu bom')
+  }
+
   _connectToGateway = () => {
-    this.setState({disabled:true},() =>{
-      if(this.state.isConnected)
-      {
-        this.setState({
-          disabled:false,
-          isConnected:false,
-          lightIsOn:false
-        })
-      }
-      else
-      {
-        this.setState({
-          disabled:false,
-          isConnected:true
-        });
-      }
-    });
+    //this.setState({disabled:true});
+    if(this.state.isConnected == false)
+    {
+      var ip = '192.168.56.1';
+      tcpClient.connect(ip, this._errorConnect, this._successConnect);
+    }
+    else
+    {
+      tcpClient.disconnect((err) => {console.log(err)}, (suc) => {this.setState({isConnected:false})});
+    }
   }
 
   _setState = (num) => {
@@ -51,13 +54,44 @@ export default class App extends Component{
     this.setState({sensor, disabled:false, isConnected:false, lightIsOn:false})
   }
 
+  _byteToString = (bytes) => {
+    var result = ''
+    for(var i = 0; i < bytes.length; i++) {
+      result += String.fromCharCode(parseInt(bytes[i], 2));
+    }
+    return result;
+  }
+
+  _convertByte = (uint8Array) => {
+    var array = [];
+
+    for (var i = 0; i < uint8Array.byteLength; i++) {
+        array[i] = uint8Array[i];
+    }
+
+    return array;
+}
+
+  _toggled = () => {
+    this.setState({lightIsOn:!this.state.lightIsOn});
+    message = new sensor_pb.CommandMessage();
+    message.setCommand(1);
+    sensor = new sensor_pb.Sensor();
+    sensor.setState(this.state.lightIsOn);
+    sensor.setId(1);
+    sensor.setType(1);
+    message.setParameter(sensor);
+    var array = this._convertByte(message.serializeBinary());
+    alert(typeof array[0])
+    tcpClient.sendMessage(array, (err) => {alert(err)}, (suc) => {alert("Sucesso!")});
+  }
+
   render() {
     return (
       <Container>
         <Header style={styles.header}>
           <Left>
             <TouchableOpacity
-            disabled = {this.state.disabled} 
             style ={styles.iconTouch}
             onPress= { () => {this._connectToGateway()} }>
               { this.state.isConnected ?
@@ -93,7 +127,7 @@ export default class App extends Component{
               <Image source = {require('./src/images/lightbulb_outline.png') }/>
             }
           <Switch
-            onValueChange = {() => {this.setState({lightIsOn:!this.state.lightIsOn})}}
+            onValueChange = {this._toggled}
             value = {this.state.lightIsOn}
             disabled = {!this.state.isConnected}/>
           </View>
