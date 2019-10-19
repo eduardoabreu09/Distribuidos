@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image, Switch, TextInput, AsyncStorage, ScrollView } from 'react-native';
 import { Container, Header, Title, Body, Left, Content} from 'native-base'
+import { byteStringToByteArray, byteToString, convertByte } from './src/util/decode'
 import { Icon, Button } from 'react-native-elements';
 import {NativeModules} from 'react-native';
 import Modal from 'react-native-modal';
@@ -11,7 +12,6 @@ export default class App extends Component{
   constructor(props) {
     super(props);
     this.state = {
-      disabled: false,
       isConnected:false,
       lightIsOn:false,
       tempValue: 0,
@@ -22,87 +22,35 @@ export default class App extends Component{
      };
   };
 
-   _base64ToArrayBuffer = (base64) => {
-    var binary_string = base64.atob(base64);
-    var len = binary_string.length;
-    var bytes = new Uint8Array( len );
-    for (var i = 0; i < len; i++)        {
-        bytes[i] = binary_string.charCodeAt(i);
+  _connectToGateway = () => {
+    if(this.state.isConnected == false)
+    {
+      tcpClient.connect(this.state.ip,this.state.port, this._errorConnect, this._successConnect);
     }
-    return bytes.buffer;
   }
 
-  _byteStringToByteArray = (str) => {
-    var bytes = [];
-    for (var i = 0; i < str.length;){
-      var j = i + 1;
-      var subStr = '';
-      while(str[j] != '/' && j < str.length){
-        subStr += str[j];
-        j += 1;
-      }
-      if (subStr == '')
-        break;
-      bytes.push(parseInt(subStr));
-      i = j;
-    }
-    return new Uint8Array(bytes);
+  _disconnectGateway = () => {
+    tcpClient.disconnect((err) => {console.log(err)}, (suc) => {this.setState({isConnected:false})});
+  }
+
+  _onConnectPressed = () => {
+    if(this.state.isConnected)
+      this._disconnectGateway();
+    else
+      this.setState({modalVis:true});
   }
 
   _errorConnect = (err) => {
-    this.setState({disabled:false});
+    this.setState({modalView:false});
     alert(err);
   }
 
-  _successConnect = (suc) => {
-    this.setState({isConnected:true})
+  _successConnect = async(suc) => {
+    await AsyncStorage.setItem("@ip",this.state.ip);
+    await AsyncStorage.setItem("@port",this.state.port.toString());
+    this.setState({isConnected:true, modalVis:false})
     console.log('Deu bom')
   }
-
-  _connectToGateway = () => {
-    //this.setState({disabled:true});
-    if(this.state.isConnected == false)
-    {
-      var ip = '192.168.0.112';
-      tcpClient.connect(ip, this._errorConnect, this._successConnect);
-    }
-    else
-    {
-      tcpClient.disconnect((err) => {console.log(err)}, (suc) => {this.setState({isConnected:false})});
-    }
-  }
-
-  _setState = (num) => {
-    //this.state.sensor.setState(num);
-    //let sensor = this.state.sensor;
-    //console.log(sensor.serializeBinary())
-    //this.setState({sensor})
-  }
-
-  _resetState = () => {
-    //this.state.sensor.setState(0);
-    //let sensor = this.state.sensor;
-    //console.log(sensor.serializeBinary())
-    //this.setState({sensor, disabled:false, isConnected:false, lightIsOn:false})
-  }
-
-  _byteToString = (bytes) => {
-    var result = ''
-    for(var i = 0; i < bytes.length; i++) {
-      result += String.fromCharCode(parseInt(bytes[i], 2));
-    }
-    return result;
-  }
-
-  _convertByte = (uint8Array) => {
-    var array = [];
-
-    for (var i = 0; i < uint8Array.byteLength; i++) {
-        array[i] = uint8Array[i];
-    }
-
-    return array;
-  } 
 
   _toggled = () => {
     this.setState({lightIsOn: !this.state.lightIsOn});
@@ -114,32 +62,15 @@ export default class App extends Component{
     sensor.setId(1);
     sensor.setType(1);
     message.setParameter(sensor);
-    var array = this._convertByte(message.serializeBinary());
+    var array = convertByte(message.serializeBinary());
     tcpClient.sendMessage(array, (err) => {alert(err)}, this._toggledSuc);
   }
 
   _toggledSuc = (suc) => {
-    msg = this._byteStringToByteArray(suc)
+    msg = byteStringToByteArray(suc)
     msgObj = sensor_pb.CommandMessage.deserializeBinary(msg);
     alert(msgObj.getParameter().getState());
     this.setState({lightIsOn: (msgObj.getParameter().getState() == 0 ? false : true)});
-  }
-
-  _connectToGateway = async() => {
-    await AsyncStorage.setItem("@ip",this.state.ip);
-    await AsyncStorage.setItem("@port",this.state.port.toString());
-    this.setState({modalVis:false})
-  }
-
-  _disconnectGateway = () => {
-
-  }
-
-  _onConnectPress = () => {
-    if(this.state.isConnected)
-      this._disconnectGateway()
-    else
-      this.setState({modalVis:true});
   }
 
   _getIpPort = async() =>  {
@@ -217,7 +148,7 @@ export default class App extends Component{
           <Left>
             <TouchableOpacity
             style ={styles.iconTouch}
-            onPress= { () => {this._onConnectPress()} }>
+            onPress= { () => {this._onConnectPressed()} }>
               { this.state.isConnected ?
               <Icon name="wifi"
               color = "#00ff62"/>
