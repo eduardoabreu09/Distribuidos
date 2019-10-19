@@ -38,7 +38,8 @@ public class TCPClientModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void connect(String ip,int port,Callback errorCallback, Callback successCallback) {
         try {
-            socket = new Socket(ip, port);
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(ip, port), 5000);
             connected = true;
             this.ipAddress = ip;
             successCallback.invoke(true);
