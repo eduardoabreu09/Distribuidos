@@ -5,12 +5,16 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.uimanager.IllegalViewOperationException;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Inet4Address;
 import java.net.Socket;
 import java.util.*;
+import java.nio.charset.StandardCharsets;
+
  
 public class TCPClientModule extends ReactContextBaseJavaModule {
 
@@ -32,12 +36,11 @@ public class TCPClientModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void connect(Callback errorCallback, Callback successCallback, String ip, int port) {
+    public void connect(String ip, Callback errorCallback, Callback successCallback) {
         try {
-            socket = new Socket(ip, port);
+            socket = new Socket(ip, 6543);
             connected = true;
             this.ipAddress = ip;
-            this.port = port;
             successCallback.invoke(true);
         } catch (Exception e) {
             errorCallback.invoke(e.getMessage());
@@ -45,14 +48,27 @@ public class TCPClientModule extends ReactContextBaseJavaModule {
     }
  
     @ReactMethod
-    public void sendMessage(Callback errorCallback, Callback successCallback, byte[] message) {
+    public void sendMessage(ReadableArray message, Callback errorCallback, Callback successCallback) {
         try {
             OutputStream os = socket.getOutputStream();
-            os.write(message);
+            byte[] messageByte = new byte[message.size()];
+            for (int i = 0; i < message.size(); i++){
+                messageByte[i] = (byte)message.getInt(i);
+            }
+            os.write(messageByte);
             InputStream is = socket.getInputStream();
             byte[] response = new byte[1024];
-            is.read(response);
-            successCallback.invoke(response);
+            int size = is.read(response);
+            byte[] b = new byte[size];
+            for (int i = 0; i < size; i++){
+                b[i] = response[i];
+            }
+            int[] bInt = new int[size];
+            for (int i = 0; i < size; i++){
+                bInt[i] = b[i];
+            }
+            String responseStr = getByteString(b);
+            successCallback.invoke(responseStr);
         } catch (Exception e) {
             errorCallback.invoke(e.getMessage());
         }
@@ -82,5 +98,15 @@ public class TCPClientModule extends ReactContextBaseJavaModule {
         } catch (Exception e) {
             errorCallback.invoke(e.getMessage());
         }
+    }
+
+    public String getByteString(byte[] bytes){
+        String str = "/";
+        for (int i = 0; i < bytes.length; i++){
+            str += Integer.toString(bytes[i]);
+            str += "/";
+        }
+
+        return str;
     }
 }
