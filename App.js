@@ -9,13 +9,41 @@ const sensor_pb = require('./src/util/sensor_pb.js');
 export default class App extends Component{
   constructor(props) {
     super(props);
-    this.state = { 
-      sensor: new sensor_pb.Sensor(),
+    this.state = {
       disabled: false,
       isConnected:false,
-      lightIsOn:false
+      lightIsOn:false,
+      tempValue: 0,
+      lumValue: 0
      };
   };
+
+   _base64ToArrayBuffer = (base64) => {
+    var binary_string = base64.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array( len );
+    for (var i = 0; i < len; i++)        {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
+  _byteStringToByteArray = (str) => {
+    var bytes = [];
+    for (var i = 0; i < str.length;){
+      var j = i + 1;
+      var subStr = '';
+      while(str[j] != '/' && j < str.length){
+        subStr += str[j];
+        j += 1;
+      }
+      if (subStr == '')
+        break;
+      bytes.push(parseInt(subStr));
+      i = j;
+    }
+    return new Uint8Array(bytes);
+  }
 
   _errorConnect = (err) => {
     this.setState({disabled:false});
@@ -31,7 +59,7 @@ export default class App extends Component{
     //this.setState({disabled:true});
     if(this.state.isConnected == false)
     {
-      var ip = '192.168.56.1';
+      var ip = '192.168.0.112';
       tcpClient.connect(ip, this._errorConnect, this._successConnect);
     }
     else
@@ -41,17 +69,17 @@ export default class App extends Component{
   }
 
   _setState = (num) => {
-    this.state.sensor.setState(num);
-    let sensor = this.state.sensor;
-    console.log(sensor.serializeBinary())
-    this.setState({sensor})
+    //this.state.sensor.setState(num);
+    //let sensor = this.state.sensor;
+    //console.log(sensor.serializeBinary())
+    //this.setState({sensor})
   }
 
   _resetState = () => {
-    this.state.sensor.setState(0);
-    let sensor = this.state.sensor;
-    console.log(sensor.serializeBinary())
-    this.setState({sensor, disabled:false, isConnected:false, lightIsOn:false})
+    //this.state.sensor.setState(0);
+    //let sensor = this.state.sensor;
+    //console.log(sensor.serializeBinary())
+    //this.setState({sensor, disabled:false, isConnected:false, lightIsOn:false})
   }
 
   _byteToString = (bytes) => {
@@ -73,17 +101,24 @@ export default class App extends Component{
 }
 
   _toggled = () => {
-    this.setState({lightIsOn:!this.state.lightIsOn});
+    this.setState({lightIsOn: !this.state.lightIsOn});
     message = new sensor_pb.CommandMessage();
     message.setCommand(1);
     sensor = new sensor_pb.Sensor();
-    sensor.setState(this.state.lightIsOn);
+    stateValue = !this.state.lightIsOn == true ? 1.0 : 0.0;
+    sensor.setState(stateValue);
     sensor.setId(1);
     sensor.setType(1);
     message.setParameter(sensor);
     var array = this._convertByte(message.serializeBinary());
-    alert(typeof array[0])
-    tcpClient.sendMessage(array, (err) => {alert(err)}, (suc) => {alert("Sucesso!")});
+    tcpClient.sendMessage(array, (err) => {alert(err)}, this._toggledSuc);
+  }
+
+  _toggledSuc = (suc) => {
+    msg = this._byteStringToByteArray(suc)
+    msgObj = sensor_pb.CommandMessage.deserializeBinary(msg);
+    alert(msgObj.getParameter().getState());
+    this.setState({lightIsOn: (msgObj.getParameter().getState() == 0 ? false : true)});
   }
 
   render() {
@@ -118,7 +153,7 @@ export default class App extends Component{
             onPress = { () => { this._setState(10) }}>
           </Button>
           <Text style={styles.instructions}>Medição do sensor</Text>
-          <Text style ={styles.medText}>{ this.state.sensor.getState() }</Text>
+          <Text style ={styles.medText}>{ this.state.tempValue }</Text>
           <View style = {styles.imageView}>
             {
               this.state.lightIsOn ?

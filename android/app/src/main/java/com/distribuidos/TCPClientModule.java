@@ -13,6 +13,8 @@ import java.io.OutputStream;
 import java.net.Inet4Address;
 import java.net.Socket;
 import java.util.*;
+import java.nio.charset.StandardCharsets;
+
  
 public class TCPClientModule extends ReactContextBaseJavaModule {
 
@@ -56,8 +58,17 @@ public class TCPClientModule extends ReactContextBaseJavaModule {
             os.write(messageByte);
             InputStream is = socket.getInputStream();
             byte[] response = new byte[1024];
-            is.read(response);
-            //successCallback.invoke("a");
+            int size = is.read(response);
+            byte[] b = new byte[size];
+            for (int i = 0; i < size; i++){
+                b[i] = response[i];
+            }
+            int[] bInt = new int[size];
+            for (int i = 0; i < size; i++){
+                bInt[i] = b[i];
+            }
+            String responseStr = getByteString(b);
+            successCallback.invoke(responseStr);
         } catch (Exception e) {
             errorCallback.invoke(e.getMessage());
         }
@@ -87,5 +98,15 @@ public class TCPClientModule extends ReactContextBaseJavaModule {
         } catch (Exception e) {
             errorCallback.invoke(e.getMessage());
         }
+    }
+
+    public String getByteString(byte[] bytes){
+        String str = "/";
+        for (int i = 0; i < bytes.length; i++){
+            str += Integer.toString(bytes[i]);
+            str += "/";
+        }
+
+        return str;
     }
 }
