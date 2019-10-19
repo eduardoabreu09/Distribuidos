@@ -6,9 +6,9 @@ import { Icon, Button } from 'react-native-elements';
 import {NativeModules} from 'react-native';
 import Modal from 'react-native-modal';
 var tcpClient = NativeModules.TCPClient;
-
+var time;
+var reset;
 const sensor_pb = require('./src/util/sensor_pb.js');
-const timer = require('react-native-timer');
 export default class App extends Component{
   constructor(props) {
     super(props);
@@ -23,10 +23,15 @@ export default class App extends Component{
      };
   };
 
-  _setupTimers = () => {
-    timer.setTimeout('temp', () => {this._fetchSensor(2)}, 1000);
-    timer.setTimeout('lum', () => {this._fetchSensor(3)}, 1000);
-    timer.setTimeout('resetTime', this._setupTimers, 1001);
+  _setupTimers(){
+    time = setTimeout(()=>{
+      this._fetchSensor(1);
+      this._fetchSensor(2);
+      this._fetchSensor(3);
+    },3000);
+    reset = setTimeout(()=>{
+      this._setupTimers()
+    },1)
   }
 
   componentDidMount = () => {
@@ -66,7 +71,7 @@ export default class App extends Component{
   }
 
   _disconnectGateway = () => {
-    tcpClient.disconnect((err) => {console.log(err)}, this._successDisconnect);
+    tcpClient.disconnect((err) => {alert(err)}, this._successDisconnect);
   }
 
   _onConnectPressed = () => {
@@ -82,14 +87,21 @@ export default class App extends Component{
 
   _successConnect = (suc) => {
     this.setState({isConnected:true})
+    this._fetchSensor(1);
+    this._fetchSensor(2);
+    this._fetchSensor(3);
     this._setupTimers();
   }
 
   _successDisconnect = () => {
-    this.setState({isConnected:false})
-    timer.clearTimeout('temp');
-    timer.clearTimeout('lum');
-    timer.clearTimeout('resetTime');
+    this.setState({
+      isConnected:false,
+      lumValue:0,
+      tempValue:0,
+      lightIsOn:false
+    })
+    clearTimeout(time);
+    clearTimeout(reset);
   }
 
   _saveConfig = async() => {
@@ -213,7 +225,7 @@ export default class App extends Component{
             style ={styles.iconTouch}
             onPress= { () => {this.setState({modalVis:true})} }>
               <Icon name="settings"
-              color = "#b2b7bf"/>
+              color = "#fff"/>
             </TouchableOpacity>
           </View>
         </Header>
@@ -282,7 +294,7 @@ const styles = StyleSheet.create({
   sensorView:{
     flex:1,
     flexDirection:'row',
-    margin:20
+    marginVertical:20
   },
   sensorValues:{
     flex:1,
@@ -291,7 +303,9 @@ const styles = StyleSheet.create({
     justifyContent:'center',
     borderWidth:5,
     height:175,
-    borderColor:"#00b874"
+    borderColor:"#fff",
+    marginHorizontal:10,
+    borderRadius:20
   },
   valueText:{
     fontSize:30,
