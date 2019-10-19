@@ -9,6 +9,7 @@ import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.io.OutputStream;
 import java.net.Inet4Address;
 import java.net.Socket;
@@ -39,7 +40,7 @@ public class TCPClientModule extends ReactContextBaseJavaModule {
     public void connect(String ip,int port,Callback errorCallback, Callback successCallback) {
         try {
             socket = new Socket();
-            socket.connect(new InetSocketAddress(ip, port), 5000);
+            socket.connect(new InetSocketAddress(ip, port), 1000);
             connected = true;
             this.ipAddress = ip;
             successCallback.invoke(true);
