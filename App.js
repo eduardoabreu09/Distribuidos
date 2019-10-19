@@ -25,6 +25,32 @@ export default class App extends Component{
   componentDidMount = () => {
     this._getIpPort();
   }
+  
+  _onFetchSensorSuccess = (suc) => {
+    msg = byteStringToByteArray(suc)
+    msgObj = sensor_pb.CommandMessage.deserializeBinary(msg);
+    switch (msgObj.getParameter().getId()){
+      case 1:
+        this.setState({lightIsOn: (msgObj.getParameter().getState() == 0 ? false : true)});
+        break;
+      case 2:
+        this.setState({tempValue: msgObj.getParameter().getState()});
+        break;
+      case 3:
+        this.setState({lumValue: msgObj.getParameter().getState()});
+        break;
+    }
+  }
+
+  _fetchSensor = (id) => {
+    message = new sensor_pb.CommandMessage();
+    message.setCommand(0);
+    sensor = new sensor_pb.Sensor();
+    sensor.setId(id);
+    message.setParameter(sensor);
+    var array = this._convertByte(message.serializeBinary());
+    tcpClient.sendMessage(array, (err) => {alert(err)}, this._onFetchSensorSuccess);
+  }
 
   _connectToGateway = () => {
       tcpClient.connect(this.state.ip,this.state.port, this._errorConnect, this._successConnect);
@@ -67,13 +93,12 @@ export default class App extends Component{
     sensor.setType(1);
     message.setParameter(sensor);
     var array = convertByte(message.serializeBinary());
-    tcpClient.sendMessage(array, (err) => {alert(err)}, this._toggledSuc);
+    tcpClient.sendMessage(array, (err) => {alert(err)}, this._onFetchSensorSuccess);
   }
 
   _toggledSuc = (suc) => {
     msg = byteStringToByteArray(suc)
     msgObj = sensor_pb.CommandMessage.deserializeBinary(msg);
-    alert(msgObj.getParameter().getState());
     this.setState({lightIsOn: (msgObj.getParameter().getState() == 0 ? false : true)});
   }
 
@@ -135,10 +160,10 @@ export default class App extends Component{
           onBackButtonPress = {() => {this.setState({modalVis:false})}}
           onBackdropPress = {() => {this.setState({modalVis:false})}}
           isVisible = {this.state.modalVis}
-          animationIn = "fadeIn"
-          animationOut = "fadeOut"
-          animationInTiming = {500}
-          animationOutTiming = {500}
+          //animationIn = "fadeIn"
+          //animationOut = "fadeOut"
+          //animationInTiming = {500}
+          //animationOutTiming = {500}
           onSwipeComplete = {() => {this.setState({modalVis:false})}}
           swipeDirection = {["down","left","right","up"]}
         >
