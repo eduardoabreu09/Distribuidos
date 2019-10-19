@@ -8,6 +8,7 @@ import Modal from 'react-native-modal';
 var tcpClient = NativeModules.TCPClient;
 
 const sensor_pb = require('./src/util/sensor_pb.js');
+const timer = require('react-native-timer');
 export default class App extends Component{
   constructor(props) {
     super(props);
@@ -21,6 +22,12 @@ export default class App extends Component{
       port: 1234
      };
   };
+
+  _setupTimers = () => {
+    timer.setTimeout('temp', () => {this._fetchSensor(2)}, 1000);
+    timer.setTimeout('lum', () => {this._fetchSensor(3)}, 1000);
+    timer.setTimeout('resetTime', this._setupTimers, 1001);
+  }
 
   componentDidMount = () => {
     this._getIpPort();
@@ -47,8 +54,10 @@ export default class App extends Component{
     message.setCommand(0);
     sensor = new sensor_pb.Sensor();
     sensor.setId(id);
+    sensor.setState(0);
+    sensor.setType(0);
     message.setParameter(sensor);
-    var array = this._convertByte(message.serializeBinary());
+    var array = convertByte(message.serializeBinary());
     tcpClient.sendMessage(array, (err) => {alert(err)}, this._onFetchSensorSuccess);
   }
 
@@ -57,7 +66,7 @@ export default class App extends Component{
   }
 
   _disconnectGateway = () => {
-    tcpClient.disconnect((err) => {console.log(err)}, (suc) => {this.setState({isConnected:false})});
+    tcpClient.disconnect((err) => {console.log(err)}, this._successDisconnect);
   }
 
   _onConnectPressed = () => {
@@ -73,7 +82,14 @@ export default class App extends Component{
 
   _successConnect = (suc) => {
     this.setState({isConnected:true})
-    console.log('Deu bom')
+    this._setupTimers();
+  }
+
+  _successDisconnect = () => {
+    this.setState({isConnected:false})
+    timer.clearTimeout('temp');
+    timer.clearTimeout('lum');
+    timer.clearTimeout('resetTime');
   }
 
   _saveConfig = async() => {
