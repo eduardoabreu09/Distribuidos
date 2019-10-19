@@ -1,12 +1,13 @@
 import React, { Component } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image, Switch, TextInput, AsyncStorage, ScrollView } from 'react-native';
-import { Container, Header, Title, Body, Left, Content} from 'native-base'
+import { Container, Header, Title, Body, Left, Content, Right} from 'native-base'
 import { byteStringToByteArray, byteToString, convertByte } from './src/util/decode'
 import { Icon, Button } from 'react-native-elements';
 import {NativeModules} from 'react-native';
 import Modal from 'react-native-modal';
 var tcpClient = NativeModules.TCPClient;
-
+var time;
+var reset;
 const sensor_pb = require('./src/util/sensor_pb.js');
 export default class App extends Component{
   constructor(props) {
@@ -22,34 +23,91 @@ export default class App extends Component{
      };
   };
 
-  _connectToGateway = () => {
-    if(this.state.isConnected == false)
-    {
-      tcpClient.connect(this.state.ip,this.state.port, this._errorConnect, this._successConnect);
+  _setupTimers(){
+    time = setTimeout(()=>{
+      this._fetchSensor(1);
+      this._fetchSensor(2);
+      this._fetchSensor(3);
+    },3000);
+    reset = setTimeout(()=>{
+      this._setupTimers()
+    },1)
+  }
+
+  componentDidMount = () => {
+    this._getIpPort();
+  }
+  
+  _onFetchSensorSuccess = (suc) => {
+    msg = byteStringToByteArray(suc)
+    msgObj = sensor_pb.CommandMessage.deserializeBinary(msg);
+    switch (msgObj.getParameter().getId()){
+      case 1:
+        this.setState({lightIsOn: (msgObj.getParameter().getState() == 0 ? false : true)});
+        break;
+      case 2:
+        this.setState({tempValue: msgObj.getParameter().getState()});
+        break;
+      case 3:
+        this.setState({lumValue: msgObj.getParameter().getState()});
+        break;
     }
   }
 
+  _fetchSensor = (id) => {
+    message = new sensor_pb.CommandMessage();
+    message.setCommand(0);
+    sensor = new sensor_pb.Sensor();
+    sensor.setId(id);
+    sensor.setState(0);
+    sensor.setType(0);
+    message.setParameter(sensor);
+    var array = convertByte(message.serializeBinary());
+    tcpClient.sendMessage(array, (err) => {alert(err)}, this._onFetchSensorSuccess);
+  }
+
+  _connectToGateway = () => {
+      tcpClient.connect(this.state.ip,this.state.port, this._errorConnect, this._successConnect);
+  }
+
   _disconnectGateway = () => {
-    tcpClient.disconnect((err) => {console.log(err)}, (suc) => {this.setState({isConnected:false})});
+    tcpClient.disconnect((err) => {alert(err)}, this._successDisconnect);
   }
 
   _onConnectPressed = () => {
     if(this.state.isConnected)
       this._disconnectGateway();
     else
-      this.setState({modalVis:true});
+      this._connectToGateway();
   }
 
   _errorConnect = (err) => {
-    this.setState({modalView:false});
     alert(err);
   }
 
-  _successConnect = async(suc) => {
+  _successConnect = (suc) => {
+    this.setState({isConnected:true})
+    this._fetchSensor(1);
+    this._fetchSensor(2);
+    this._fetchSensor(3);
+    this._setupTimers();
+  }
+
+  _successDisconnect = () => {
+    this.setState({
+      isConnected:false,
+      lumValue:0,
+      tempValue:0,
+      lightIsOn:false
+    })
+    clearTimeout(time);
+    clearTimeout(reset);
+  }
+
+  _saveConfig = async() => {
     await AsyncStorage.setItem("@ip",this.state.ip);
     await AsyncStorage.setItem("@port",this.state.port.toString());
-    this.setState({isConnected:true, modalVis:false})
-    console.log('Deu bom')
+    this.setState({modalVis:false})
   }
 
   _toggled = () => {
@@ -63,13 +121,12 @@ export default class App extends Component{
     sensor.setType(1);
     message.setParameter(sensor);
     var array = convertByte(message.serializeBinary());
-    tcpClient.sendMessage(array, (err) => {alert(err)}, this._toggledSuc);
+    tcpClient.sendMessage(array, (err) => {alert(err)}, this._onFetchSensorSuccess);
   }
 
   _toggledSuc = (suc) => {
     msg = byteStringToByteArray(suc)
     msgObj = sensor_pb.CommandMessage.deserializeBinary(msg);
-    alert(msgObj.getParameter().getState());
     this.setState({lightIsOn: (msgObj.getParameter().getState() == 0 ? false : true)});
   }
 
@@ -115,7 +172,7 @@ export default class App extends Component{
           title = "Ok"
           titleStyle ={styles.buttonText} 
           buttonStyle ={styles.buttonOk} 
-          onPress = { () => { this._connectToGateway() }}>
+          onPress = { () => { this._saveConfig() }}>
         </Button>
       </View>
     </View>
@@ -131,10 +188,10 @@ export default class App extends Component{
           onBackButtonPress = {() => {this.setState({modalVis:false})}}
           onBackdropPress = {() => {this.setState({modalVis:false})}}
           isVisible = {this.state.modalVis}
-          animationIn = "fadeIn"
-          animationOut = "fadeOut"
-          animationInTiming = {500}
-          animationOutTiming = {500}
+          //animationIn = "fadeIn"
+          //animationOut = "fadeOut"
+          //animationInTiming = {500}
+          //animationOutTiming = {500}
           onSwipeComplete = {() => {this.setState({modalVis:false})}}
           swipeDirection = {["down","left","right","up"]}
         >
@@ -145,7 +202,7 @@ export default class App extends Component{
         androidStatusBarColor = "#014e85"
         noShadow={true}
         >
-          <Left>
+          <View>
             <TouchableOpacity
             style ={styles.iconTouch}
             onPress= { () => {this._onConnectPressed()} }>
@@ -157,20 +214,28 @@ export default class App extends Component{
               color = "#ff002b"/>
               } 
             </TouchableOpacity>
-          </Left>
-          <Body style={styles.body} >
+          </View>
+          <View style={styles.body} >
             <Title style={{fontFamily:'lato',fontWeight:'bold',fontSize:20}}>
               Sensores.io
             </Title>
-          </Body>
+          </View>
+          <View>
+          <TouchableOpacity
+            style ={styles.iconTouch}
+            onPress= { () => {this.setState({modalVis:true})} }>
+              <Icon name="settings"
+              color = "#fff"/>
+            </TouchableOpacity>
+          </View>
         </Header>
         <ScrollView style ={styles.content}>
           <View style = {styles.imageView}>
             {
             this.state.lightIsOn ?
-            <Image source = {require('./src/images/lightbulb_white_yellow.png') }/>
+            <Image source = {require('./src/images/lightbulb_yellow.png') } style = {{width:250, height:250}} />
             :
-            <Image source = {require('./src/images/lightbulb_white.png') }/>
+            <Image source = {require('./src/images/lightbulb_white.png') } style = {{width:250, height:250}} />
             }
           <Switch
             onValueChange = {this._toggled}
@@ -181,11 +246,11 @@ export default class App extends Component{
             <View style ={styles.sensorView}>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Temperatura</Text>
-                <Text style = {styles.valueText}>0</Text>
+                <Text style = {styles.valueText}>{this.state.tempValue}</Text>
               </View>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Luminosidade</Text>
-                <Text style = {styles.valueText}>0</Text>
+                <Text style = {styles.valueText}>{this.state.lumValue}</Text>
               </View>
             </View>
           </View>
@@ -201,7 +266,8 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems:'center',
-    backgroundColor:"#014e85"
+    backgroundColor:"#014e85",
+    justifyContent:'space-between'
   },
   modalView: {
     backgroundColor:"#00b874",
@@ -218,7 +284,6 @@ const styles = StyleSheet.create({
     color:'#fff'
   },
   body:{
-    marginLeft:32
   },
   content:{
     flex:1,
@@ -229,7 +294,7 @@ const styles = StyleSheet.create({
   sensorView:{
     flex:1,
     flexDirection:'row',
-    margin:20
+    marginVertical:20
   },
   sensorValues:{
     flex:1,
@@ -237,8 +302,10 @@ const styles = StyleSheet.create({
     alignItems:'center',
     justifyContent:'center',
     borderWidth:5,
-    height:200,
-    borderColor:"#00b874"
+    height:175,
+    borderColor:"#fff",
+    marginHorizontal:10,
+    borderRadius:20
   },
   valueText:{
     fontSize:30,
@@ -247,7 +314,7 @@ const styles = StyleSheet.create({
     fontWeight:'bold'
   },
   iconTouch:{
-    padding:20
+    marginHorizontal:20
   },
   imageView:{
     flex:1,
