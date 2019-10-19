@@ -31,7 +31,7 @@ export default class App extends Component{
     },3000);
     reset = setTimeout(()=>{
       this._setupTimers()
-    },1)
+    },3001)
   }
 
   componentDidMount = () => {
@@ -188,10 +188,10 @@ export default class App extends Component{
           onBackButtonPress = {() => {this.setState({modalVis:false})}}
           onBackdropPress = {() => {this.setState({modalVis:false})}}
           isVisible = {this.state.modalVis}
-          //animationIn = "fadeIn"
-          //animationOut = "fadeOut"
-          //animationInTiming = {500}
-          //animationOutTiming = {500}
+          animationIn = "fadeIn"
+          animationOut = "fadeOut"
+          animationInTiming = {500}
+          animationOutTiming = {500}
           onSwipeComplete = {() => {this.setState({modalVis:false})}}
           swipeDirection = {["down","left","right","up"]}
         >
@@ -246,11 +246,11 @@ export default class App extends Component{
             <View style ={styles.sensorView}>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Temperatura</Text>
-                <Text style = {styles.valueText}>{this.state.tempValue}</Text>
+                <Text style = {styles.valueText}>{this.state.tempValue.toFixed(2)}ºC</Text>
               </View>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Luminosidade</Text>
-                <Text style = {styles.valueText}>{this.state.lumValue}</Text>
+                <Text style = {styles.valueText}>{this.state.lumValue}%</Text>
               </View>
             </View>
           </View>
