@@ -218,11 +218,11 @@ export default class App extends Component{
             <View style ={styles.sensorView}>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Temperatura</Text>
-                <Text style = {styles.valueText}>0</Text>
+                <Text style = {styles.valueText}>{this.state.tempValue}</Text>
               </View>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Luminosidade</Text>
-                <Text style = {styles.valueText}>0</Text>
+                <Text style = {styles.valueText}>{this.state.lumValue}</Text>
               </View>
             </View>
           </View>
