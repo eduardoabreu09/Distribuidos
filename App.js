@@ -142,7 +142,7 @@ export default class App extends Component{
   _renderModal = () => (
     <View style ={styles.modalView}>
       <View>
-        <Text style={styles.modalText}>Ip</Text>
+        <Text style={styles.modalText}>IP</Text>
         <TextInput 
         value ={this.state.ip}
         style = {styles.modalText}
@@ -250,7 +250,7 @@ export default class App extends Component{
               </View>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Luminosidade</Text>
-                <Text style = {styles.valueText}>{this.state.lumValue}%</Text>
+                <Text style = {styles.valueText}>{Math.floor(this.state.lumValue)}%</Text>
               </View>
             </View>
           </View>
