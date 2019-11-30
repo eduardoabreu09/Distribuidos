@@ -17,6 +17,7 @@ const config = {
   virtualhost:'/'
 }
 const sensor_pb = require('./src/util/sensor_pb.js');
+var base64 = require('base-64');
 export default class App extends Component{
   constructor(props) {
     super(props);
@@ -39,14 +40,13 @@ export default class App extends Component{
       port: 1234,
       connection: connection,
       exchange:null,
-      tempQueue:null
+      queue: null
      };
   connection.on('error', (event) => {
       alert('error')
     });
 
   connection.on('connected', (event) => {
-      alert('deu bom ');
       this.setState({isConnected:true});
       let exchange = new Exchange(connection, {
         name: 'DIST',
@@ -81,13 +81,25 @@ export default class App extends Component{
     queue.bind(this.state.exchange, 'TEMPERATURE');
     queue.bind(this.state.exchange, 'GAS');
     queue.bind(this.state.exchange, 'LUMINOSITY');
+    this.setState({queue:queue});
     queue.on('message', (data) => {
       this._readQueueData(data);
     });
   }
 
+  _unpack(str) {
+    var bytes = [];
+    for(var i = 0; i < str.length; i++) {
+        var char = str.charCodeAt(i);
+        bytes.push(char >>> 8);
+        bytes.push(char & 0xFF);
+    }
+    return bytes;
+  }
+
   _readQueueData = (data) => {
-    this._onFetchSensorSuccess(data.message);
+    let bytes = byteStringToByteArray(data.message);
+    this._onFetchSensorSuccess(new Uint8Array(bytes));
   }
 
   _bin2String(array) {
@@ -241,7 +253,7 @@ export default class App extends Component{
             <View style ={styles.sensorView}>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Temperatura</Text>
-                <Text style = {styles.valueText}>{this.state.tempValue.toFixed(2)}ºC</Text>
+                <Text style = {styles.valueText}>{this.state.gasValue.toFixed(2)}ºC</Text>
               </View>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Luminosidade</Text>
