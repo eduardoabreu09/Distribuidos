@@ -29,6 +29,7 @@ export default class App extends Component{
       modalVis: false,
       ip: "127.0.0.1",
       port: 1234,
+      connection: null,
       exchange:null,
      };
   let connection = new Connection({
@@ -36,38 +37,51 @@ export default class App extends Component{
     port:5672,
     username:'dist',
     password:'dist',
-    virtualhost:'/'
+    virtualhost:'/',
+    ttl: 5000
   });
   connection.connect();
   connection.on('error', (event) => {
-      alert('could not connect to rabbitmq server')
+      alert('error')
     });
 
   connection.on('connected', (event) => {
+      alert('deu bom ');
       this.setState({isConnected:true});
       let exchange = new Exchange(connection, {
         name: 'DIST',
         type: 'direct',
-        durable: true,
+        durable: false,
         autoDelete: false,
         internal: false
       });
+      this.setState({connection:connection});
       this.setState({exchange:exchange});
+      this._setupQueue('TEMPERATURE');
     });
+
+    connection.on('disconnected', (event) => {
+      alert('morreu')
+    })
      
   };
 
   _setupQueue(key){
-    let queue = new Queue( this.connection, {
+    let queue = new Queue( this.state.connection, {
+      name: '',
       passive: false,
       durable: true,
-      exclusive: false,
+      exclusive: true,
       consumer_arguments: {'x-priority': 1}
     });
     queue.bind(this.state.exchange, key);
     queue.on('message', (data) => {
-      this._onSensorMessageReceived(data, key);
+      this._readQueueData(data, key, queue);
     });
+  }
+
+  _readQueueData = (data, key, queue) => {
+    this._onSensorMessageReceived(data.message, key);
   }
 
   _setupTimers(){
@@ -94,7 +108,7 @@ export default class App extends Component{
   }
 
   _onSensorMessageReceived = (suc, key) => {
-    msg = this._bin2String(suc);
+    msg = suc
     if (key == 'GAS'){
       this.setState({gasValue:Number(msg)});
     }else if (key == 'TEMPERATURE'){
