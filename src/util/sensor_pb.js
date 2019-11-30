@@ -200,7 +200,8 @@ proto.Sensor.serializeBinaryToWriter = function(message, writer) {
 proto.Sensor.SensorType = {
   TEMPERATURE: 0,
   LIGHT: 1,
-  LUMINOSITY: 2
+  LUMINOSITY: 2,
+  GAS: 3
 };
 
 /**

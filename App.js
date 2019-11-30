@@ -20,6 +20,14 @@ const sensor_pb = require('./src/util/sensor_pb.js');
 export default class App extends Component{
   constructor(props) {
     super(props);
+    let connection = new Connection({
+      host:'ec2-3-89-88-24.compute-1.amazonaws.com',
+      port:5672,
+      username:'dist',
+      password:'dist',
+      virtualhost:'/',
+      ttl: 5000
+    });
     this.state = {
       isConnected:false,
       lightIsOn:false,
@@ -29,18 +37,10 @@ export default class App extends Component{
       modalVis: false,
       ip: "127.0.0.1",
       port: 1234,
-      connection: null,
+      connection: connection,
       exchange:null,
+      tempQueue:null
      };
-  let connection = new Connection({
-    host:'ec2-3-89-88-24.compute-1.amazonaws.com',
-    port:5672,
-    username:'dist',
-    password:'dist',
-    virtualhost:'/',
-    ttl: 5000
-  });
-  connection.connect();
   connection.on('error', (event) => {
       alert('error')
     });
@@ -57,42 +57,37 @@ export default class App extends Component{
       });
       this.setState({connection:connection});
       this.setState({exchange:exchange});
-      this._setupQueue('TEMPERATURE');
+      this._setupQueue();
     });
-
-    connection.on('disconnected', (event) => {
-      alert('morreu')
-    })
      
   };
 
-  _setupQueue(key){
+  componentWillUnmount(){
+    if(this.state.connection != null){
+      this.state.connection.close();
+    }
+  }
+
+  _setupQueue(){
     let queue = new Queue( this.state.connection, {
       name: '',
       passive: false,
       durable: true,
       exclusive: true,
-      consumer_arguments: {'x-priority': 1}
+      consumer_arguments: {'x-priority': 1},
+      autoBufferAck: true,
+      buffer_delay: 100
     });
-    queue.bind(this.state.exchange, key);
+    queue.bind(this.state.exchange, 'TEMPERATURE');
+    queue.bind(this.state.exchange, 'GAS');
+    queue.bind(this.state.exchange, 'LUMINOSITY');
     queue.on('message', (data) => {
-      this._readQueueData(data, key, queue);
+      this._readQueueData(data);
     });
   }
 
-  _readQueueData = (data, key, queue) => {
-    this._onSensorMessageReceived(data.message, key);
-  }
-
-  _setupTimers(){
-    time = setTimeout(()=>{
-      this._fetchSensor(1);
-      this._fetchSensor(2);
-      this._fetchSensor(3);
-    },3000);
-    reset = setTimeout(()=>{
-      this._setupTimers()
-    },3001)
+  _readQueueData = (data) => {
+    this._onFetchSensorSuccess(data.message);
   }
 
   _bin2String(array) {
@@ -106,21 +101,9 @@ export default class App extends Component{
   componentDidMount = () => {
     this._getIpPort();
   }
-
-  _onSensorMessageReceived = (suc, key) => {
-    msg = suc
-    if (key == 'GAS'){
-      this.setState({gasValue:Number(msg)});
-    }else if (key == 'TEMPERATURE'){
-      this.setState({tempValue:Number(msg)});
-    }else if (key == 'LUMINOSITY'){
-      this.setState({lumValue:Number(msg)});
-    }
-  }
   
   _onFetchSensorSuccess = (suc) => {
-    msg = byteStringToByteArray(suc)
-    msgObj = sensor_pb.CommandMessage.deserializeBinary(msg);
+    msgObj = sensor_pb.CommandMessage.deserializeBinary(suc);
     switch (msgObj.getParameter().getId()){
       case 1:
         this.setState({lightIsOn: (msgObj.getParameter().getState() == 0 ? false : true)});
@@ -131,83 +114,27 @@ export default class App extends Component{
       case 3:
         this.setState({lumValue: msgObj.getParameter().getState()});
         break;
+      case 4:
+        this.setState({gasValue: msgObj.getParameter().getState()});
     }
   }
 
-  _fetchSensor = (id) => {
-    message = new sensor_pb.CommandMessage();
-    message.setCommand(0);
-    sensor = new sensor_pb.Sensor();
-    sensor.setId(id);
-    sensor.setState(0);
-    sensor.setType(0);
-    message.setParameter(sensor);
-    var array = convertByte(message.serializeBinary());
-    tcpClient.sendMessage(array, (err) => {alert(err)}, this._onFetchSensorSuccess);
-  }
-
-  _connectToGateway = () => {
-      tcpClient.connect(this.state.ip,this.state.port, this._errorConnect, this._successConnect);
-  }
-
-  _disconnectGateway = () => {
-    tcpClient.disconnect((err) => {alert(err)}, this._successDisconnect);
-  }
-
   _onConnectPressed = () => {
-    if(this.state.isConnected)
-      this._disconnectGateway();
-    else
-      this._connectToGateway();
+    if (!this.state.isConnected){
+    this.state.connection.connect();
+    }else {
+      this.state.connection.close();
+    }
   }
 
   _errorConnect = (err) => {
     alert(err);
   }
 
-  _successConnect = (suc) => {
-    this.setState({isConnected:true})
-    this._fetchSensor(1);
-    this._fetchSensor(2);
-    this._fetchSensor(3);
-    this._setupTimers();
-  }
-
-  _successDisconnect = () => {
-    this.setState({
-      isConnected:false,
-      lumValue:0,
-      tempValue:0,
-      lightIsOn:false
-    })
-    clearTimeout(time);
-    clearTimeout(reset);
-  }
-
   _saveConfig = async() => {
     await AsyncStorage.setItem("@ip",this.state.ip);
     await AsyncStorage.setItem("@port",this.state.port.toString());
     this.setState({modalVis:false})
-  }
-
-  _toggled = () => {
-    this.setState({lightIsOn: !this.state.lightIsOn});
-    message = new sensor_pb.CommandMessage();
-    message.setCommand(1);
-    sensor = new sensor_pb.Sensor();
-    stateValue = !this.state.lightIsOn == true ? 1.0 : 0.0;
-    sensor.setState(stateValue);
-    sensor.setId(1);
-    sensor.setType(1);
-    message.setParameter(sensor);
-    var array = convertByte(message.serializeBinary());
-    tcpClient.sendMessage(array, (err) => {alert(err)}, this._onFetchSensorSuccess);
-  }
-
-  _toggledSuc = (suc) => {
-    msg = byteStringToByteArray(suc)
-    msgObj = sensor_pb.CommandMessage.deserializeBinary(msg);
-    this.setState({lightIsOn: (msgObj.getParameter().getState() == 0 ? false : true)});
   }
 
   _getIpPort = async() =>  {
@@ -310,18 +237,6 @@ export default class App extends Component{
           </View>
         </Header>
         <ScrollView style ={styles.content}>
-          <View style = {styles.imageView}>
-            {
-            this.state.lightIsOn ?
-            <Image source = {require('./src/images/lightbulb_yellow.png') } style = {{width:250, height:250}} />
-            :
-            <Image source = {require('./src/images/lightbulb_white.png') } style = {{width:250, height:250}} />
-            }
-          <Switch
-            onValueChange = {this._toggled}
-            value = {this.state.lightIsOn}
-            disabled = {!this.state.isConnected}/>
-          </View>
           <View style={{alignItems:'center', justifyContent:'center', flex:1}}>
             <View style ={styles.sensorView}>
               <View style={styles.sensorValues}>
