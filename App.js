@@ -5,6 +5,8 @@ import { byteStringToByteArray, byteToString, convertByte } from './src/util/dec
 import { Icon, Button } from 'react-native-elements';
 import {NativeModules} from 'react-native';
 import Modal from 'react-native-modal';
+import { Connection, Exchange, Queue } from 'react-native-rabbitmq';
+import {rabbitConfig} from './src/util/queueSigner'
 var tcpClient = NativeModules.TCPClient;
 var time;
 var reset;
@@ -17,11 +19,45 @@ export default class App extends Component{
       lightIsOn:false,
       tempValue: 0,
       lumValue: 0,
+      gasValue: 0,
       modalVis: false,
       ip: "127.0.0.1",
-      port: 1234
+      port: 1234,
+      exchange:null,
      };
+     
+  let connection = new Connection(rabbitConfig);
+
+  connection.on('error', (event) => {
+      alert('could not connect to rabbitmq server')
+    });
+
+  connection.on('connected', (event) => {
+      this.setState({isConnected:true});
+      let exchange = new Exchange(connection, {
+        name: 'DIST',
+        type: 'direct',
+        durable: true,
+        autoDelete: false,
+        internal: false
+      });
+      this.setState({exchange:exchange});
+    });
+     
   };
+
+  _setupQueue(key){
+    let queue = new Queue( this.connection, {
+      passive: false,
+      durable: true,
+      exclusive: false,
+      consumer_arguments: {'x-priority': 1}
+    });
+    queue.bind(this.state.exchange, key);
+    queue.on('message', (data) => {
+      this._onSensorMessageReceived(data, key);
+    });
+  }
 
   _setupTimers(){
     time = setTimeout(()=>{
@@ -34,8 +70,27 @@ export default class App extends Component{
     },3001)
   }
 
+  _bin2String(array) {
+    var result = "";
+    for (var i = 0; i < array.length; i++) {
+      result += String.fromCharCode(parseInt(array[i], 2));
+    }
+    return result;
+  }
+
   componentDidMount = () => {
     this._getIpPort();
+  }
+
+  _onSensorMessageReceived = (suc, key) => {
+    msg = this._bin2String(suc);
+    if (key == 'GAS'){
+      this.setState({gasValue:Number(msg)});
+    }else if (key == 'TEMPERATURE'){
+      this.setState({tempValue:Number(msg)});
+    }else if (key == 'LUMINOSITY'){
+      this.setState({lumValue:Number(msg)});
+    }
   }
   
   _onFetchSensorSuccess = (suc) => {
