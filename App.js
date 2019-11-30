@@ -6,10 +6,16 @@ import { Icon, Button } from 'react-native-elements';
 import {NativeModules} from 'react-native';
 import Modal from 'react-native-modal';
 import { Connection, Exchange, Queue } from 'react-native-rabbitmq';
-import {rabbitConfig} from './src/util/queueSigner'
 var tcpClient = NativeModules.TCPClient;
 var time;
 var reset;
+const config = {
+  host:'ec2-3-89-88-24.compute-1.amazonaws.com',
+  port:5672,
+  username:'dist',
+  password:'dist',
+  virtualhost:'/'
+}
 const sensor_pb = require('./src/util/sensor_pb.js');
 export default class App extends Component{
   constructor(props) {
@@ -25,9 +31,14 @@ export default class App extends Component{
       port: 1234,
       exchange:null,
      };
-     
-  let connection = new Connection(rabbitConfig);
-
+  let connection = new Connection({
+    host:'ec2-3-89-88-24.compute-1.amazonaws.com',
+    port:5672,
+    username:'dist',
+    password:'dist',
+    virtualhost:'/'
+  });
+  connection.connect();
   connection.on('error', (event) => {
       alert('could not connect to rabbitmq server')
     });

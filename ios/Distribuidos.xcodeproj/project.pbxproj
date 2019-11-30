@@ -57,6 +57,7 @@
 		AA363FFB52A548279AB32B6A /* Octicons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3556C359724C41679837D6C0 /* Octicons.ttf */; };
 		4F16F77635CA44D58EB3D750 /* SimpleLineIcons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 47FC0FA417F646548681651F /* SimpleLineIcons.ttf */; };
 		754A54CFF123454B931B2300 /* Zocial.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 43F7B16BE6494C558A8ADF1B /* Zocial.ttf */; };
+		784F14686F5C44B19E4D8FD7 /* libRCTReactNativeRabbitMq.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9F520ED8BFEE4301A30E5A75 /* libRCTReactNativeRabbitMq.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -383,6 +384,8 @@
 		3556C359724C41679837D6C0 /* Octicons.ttf */ = {isa = PBXFileReference; name = "Octicons.ttf"; path = "../node_modules/react-native-vector-icons/Fonts/Octicons.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 		47FC0FA417F646548681651F /* SimpleLineIcons.ttf */ = {isa = PBXFileReference; name = "SimpleLineIcons.ttf"; path = "../node_modules/react-native-vector-icons/Fonts/SimpleLineIcons.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 		43F7B16BE6494C558A8ADF1B /* Zocial.ttf */ = {isa = PBXFileReference; name = "Zocial.ttf"; path = "../node_modules/react-native-vector-icons/Fonts/Zocial.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		F42E88BDFEBD45DE83F10B8A /* RCTReactNativeRabbitMq.xcodeproj */ = {isa = PBXFileReference; name = "RCTReactNativeRabbitMq.xcodeproj"; path = "../node_modules/react-native-rabbitmq/ios/RCTReactNativeRabbitMq.xcodeproj"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = wrapper.pb-project; explicitFileType = undefined; includeInIndex = 0; };
+		9F520ED8BFEE4301A30E5A75 /* libRCTReactNativeRabbitMq.a */ = {isa = PBXFileReference; name = "libRCTReactNativeRabbitMq.a"; path = "libRCTReactNativeRabbitMq.a"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = archive.ar; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -412,6 +415,7 @@
 				00C302EA1ABCBA2D00DB3ED1 /* libRCTVibration.a in Frameworks */,
 				139FDEF61B0652A700C62182 /* libRCTWebSocket.a in Frameworks */,
 				BC8E6A572F7542A694BC4FA1 /* libRNVectorIcons.a in Frameworks */,
+				784F14686F5C44B19E4D8FD7 /* libRCTReactNativeRabbitMq.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -603,6 +607,7 @@
 				00C302DF1ABCB9EE00DB3ED1 /* RCTVibration.xcodeproj */,
 				139FDEE61B06529A00C62182 /* RCTWebSocket.xcodeproj */,
 				20B337DA36C64B29AE6BEFC9 /* RNVectorIcons.xcodeproj */,
+				F42E88BDFEBD45DE83F10B8A /* RCTReactNativeRabbitMq.xcodeproj */,
 			);
 			name = Libraries;
 			sourceTree = "<group>";
@@ -1273,10 +1278,12 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
+					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)\..\node_modules\react-native-vector-icons\RNVectorIconsManager",
+					"$(SRCROOT)\..\node_modules\react-native-rabbitmq\ios\RCTReactNativeRabbitMq",
 				);
 			};
 			name = Debug;
@@ -1300,10 +1307,12 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
+					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)\..\node_modules\react-native-vector-icons\RNVectorIconsManager",
+					"$(SRCROOT)\..\node_modules\react-native-rabbitmq\ios\RCTReactNativeRabbitMq",
 				);
 			};
 			name = Release;
@@ -1327,6 +1336,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)\..\node_modules\react-native-vector-icons\RNVectorIconsManager",
+					"$(SRCROOT)\..\node_modules\react-native-rabbitmq\ios\RCTReactNativeRabbitMq",
 				);
 			};
 			name = Debug;
@@ -1349,6 +1359,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)\..\node_modules\react-native-vector-icons\RNVectorIconsManager",
+					"$(SRCROOT)\..\node_modules\react-native-rabbitmq\ios\RCTReactNativeRabbitMq",
 				);
 			};
 			name = Release;
@@ -1380,10 +1391,12 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
+					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)\..\node_modules\react-native-vector-icons\RNVectorIconsManager",
+					"$(SRCROOT)\..\node_modules\react-native-rabbitmq\ios\RCTReactNativeRabbitMq",
 				);
 			};
 			name = Debug;
@@ -1415,10 +1428,12 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
+					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)\..\node_modules\react-native-vector-icons\RNVectorIconsManager",
+					"$(SRCROOT)\..\node_modules\react-native-rabbitmq\ios\RCTReactNativeRabbitMq",
 				);
 			};
 			name = Release;
@@ -1449,10 +1464,12 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
+					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)\..\node_modules\react-native-vector-icons\RNVectorIconsManager",
+					"$(SRCROOT)\..\node_modules\react-native-rabbitmq\ios\RCTReactNativeRabbitMq",
 				);
 			};
 			name = Debug;
@@ -1483,10 +1500,12 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 					"\"$(SRCROOT)/$(TARGET_NAME)\"",
+					"\"$(SRCROOT)/$(TARGET_NAME)\"",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)\..\node_modules\react-native-vector-icons\RNVectorIconsManager",
+					"$(SRCROOT)\..\node_modules\react-native-rabbitmq\ios\RCTReactNativeRabbitMq",
 				);
 			};
 			name = Release;
