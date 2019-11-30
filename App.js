@@ -40,11 +40,16 @@ export default class App extends Component{
       port: 1234,
       connection: connection,
       exchange:null,
-      queue: null
+      queue: null,
+      gasSwitch:false,
+      tempSwitch:false,
+      lumSwitch:false
      };
   connection.on('error', (event) => {
       alert('error')
     });
+
+    connection.on('cone')
 
   connection.on('connected', (event) => {
       this.setState({isConnected:true});
@@ -55,8 +60,10 @@ export default class App extends Component{
         autoDelete: false,
         internal: false
       });
-      this.setState({connection:connection});
-      this.setState({exchange:exchange});
+      this.setState({
+        connection:connection,
+        exchange:exchange
+      });
       this._setupQueue();
     });
      
@@ -81,7 +88,12 @@ export default class App extends Component{
     queue.bind(this.state.exchange, 'TEMPERATURE');
     queue.bind(this.state.exchange, 'GAS');
     queue.bind(this.state.exchange, 'LUMINOSITY');
-    this.setState({queue:queue});
+    this.setState({
+      queue:queue,
+      gasSwitch:true,
+      tempSwitch:true,
+      lumSwitch:true
+    });
     queue.on('message', (data) => {
       this._readQueueData(data);
     });
@@ -110,8 +122,37 @@ export default class App extends Component{
     return result;
   }
 
-  componentDidMount = () => {
-    this._getIpPort();
+  _bindKey = (key) =>{
+    let queue = this.state.queue
+    queue.bind(this.state.exchange, key);
+    this.setState({queue:queue})
+    if(key == 'TEMPERATURE')
+      this.setState({tempSwitch:true})
+    else if(key == 'LUMINOSITY')
+      this.setState({lumSwitch:true})
+    else if(key == 'GAS')
+      this.setState({gasSwitch:true})
+  }
+
+  _unbindKey = (key) =>{
+    let queue = this.state.queue
+    queue.unbind(this.state.exchange, key);
+    this.setState({queue:queue})
+    if(key == 'TEMPERATURE')
+      this.setState({
+        tempSwitch:false,
+        tempValue:0
+      })
+    else if(key == 'LUMINOSITY')
+      this.setState({
+        lumSwitch:false,
+        lumValue:0
+      })
+    else if(key == 'GAS')
+      this.setState({
+        gasSwitch:false,
+        gasValue:0
+      })
   }
   
   _onFetchSensorSuccess = (suc) => {
@@ -133,9 +174,18 @@ export default class App extends Component{
 
   _onConnectPressed = () => {
     if (!this.state.isConnected){
-    this.state.connection.connect();
+      this.state.connection.connect();
     }else {
-      this.state.connection.close();
+      this.state.connection.close()
+      this.setState({
+        isConnected:false,
+        tempValue: 0,
+        lumValue: 0,
+        gasValue: 0,
+        gasSwitch:false,
+        tempSwitch:false,
+        lumSwitch:false
+      })
     }
   }
 
@@ -248,20 +298,39 @@ export default class App extends Component{
             </TouchableOpacity>
           </View>
         </Header>
-        <ScrollView style ={styles.content}>
-          <View style={{alignItems:'center', justifyContent:'center', flex:1}}>
+        <View style ={styles.content}>
+          <View style={{alignItems:'center', justifyContent:'center', flex:1, marginTop:20}}>
+            <View style={{...styles.sensorValues,width:200}}>
+              <Text style = {styles.buttonText}>Gás</Text>
+            <Text style = {styles.valueText}>{this.state.gasValue}</Text>
+            </View>
+            <Switch
+                value={this.state.gasSwitch}
+                disabled={!this.state.isConnected} 
+                onValueChange = {(value) => value?this._bindKey('GAS'):this._unbindKey('GAS')}
+                style={{marginTop:5}}/>
             <View style ={styles.sensorView}>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Temperatura</Text>
-                <Text style = {styles.valueText}>{this.state.gasValue.toFixed(2)}ºC</Text>
+                <Text style = {styles.valueText}>{this.state.tempValue.toFixed(2)}ºC</Text>
+                <Switch
+                value={this.state.tempSwitch}
+                disabled={!this.state.isConnected} 
+                onValueChange = {(value) => value?this._bindKey('TEMPERATURE'):this._unbindKey('TEMPERATURE')}
+                style={{marginTop:5}}/>
               </View>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Luminosidade</Text>
                 <Text style = {styles.valueText}>{Math.floor(this.state.lumValue)}%</Text>
+                <Switch
+                value={this.state.lumSwitch}
+                disabled={!this.state.isConnected} 
+                onValueChange = {(value) => value?this._bindKey('LUMINOSITY'):this._unbindKey('LUMINOSITY')}
+                style={{marginTop:5}}/>
               </View>
             </View>
           </View>
-        </ScrollView>
+        </View>
       </Container>
     );
   }
