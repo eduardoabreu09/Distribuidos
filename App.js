@@ -6,28 +6,12 @@ import { Icon, Button } from 'react-native-elements';
 import {NativeModules} from 'react-native';
 import Modal from 'react-native-modal';
 import { Connection, Exchange, Queue } from 'react-native-rabbitmq';
-var tcpClient = NativeModules.TCPClient;
-var time;
-var reset;
-const config = {
-  host:'ec2-3-89-88-24.compute-1.amazonaws.com',
-  port:5672,
-  username:'dist',
-  password:'dist',
-  virtualhost:'/'
-}
+
 const sensor_pb = require('./src/util/sensor_pb.js');
+
 export default class App extends Component{
   constructor(props) {
     super(props);
-    let connection = new Connection({
-      host:'ec2-3-89-88-24.compute-1.amazonaws.com',
-      port:5672,
-      username:'dist',
-      password:'dist',
-      virtualhost:'/',
-      ttl: 5000
-    });
     this.state = {
       isConnected:false,
       lightIsOn:false,
@@ -37,17 +21,32 @@ export default class App extends Component{
       modalVis: false,
       ip: "127.0.0.1",
       port: 1234,
-      connection: connection,
+      connection: null,
       exchange:null,
-      tempQueue:null
+      tempQueue:null,
+      gasSwitch:false,
+      tempSwitch:false,
+      lumSwitch:false
      };
-  connection.on('error', (event) => {
+  };
+
+  _connect = () => {
+    let connection = new Connection({
+      host:'ec2-3-89-88-24.compute-1.amazonaws.com',
+      port:5672,
+      username:'dist',
+      password:'dist',
+      virtualhost:'/',
+      ttl: 5000
+    });
+    console.log(connection)
+    connection.on('error', (event) => {
+      console.log('erro')
       alert('error')
     });
 
-  connection.on('connected', (event) => {
+    connection.on('connected', (event) => {
       alert('deu bom ');
-      this.setState({isConnected:true});
       let exchange = new Exchange(connection, {
         name: 'DIST',
         type: 'direct',
@@ -55,12 +54,21 @@ export default class App extends Component{
         autoDelete: false,
         internal: false
       });
-      this.setState({connection:connection});
-      this.setState({exchange:exchange});
-      this._setupQueue();
+      console.log(exchange)
+      this.setState({
+        connection:connection,
+        isConnected:true,
+        exchange:exchange
+      }, () =>{
+        this._setupQueue();
+      });
     });
-     
-  };
+  }
+
+  _disconnect = () => {
+    if(this.state.connection)
+      this.state.connection.close()
+  }
 
   componentWillUnmount(){
     if(this.state.connection != null){
@@ -78,12 +86,38 @@ export default class App extends Component{
       autoBufferAck: true,
       buffer_delay: 100
     });
+    console.log(queue)
     queue.bind(this.state.exchange, 'TEMPERATURE');
     queue.bind(this.state.exchange, 'GAS');
     queue.bind(this.state.exchange, 'LUMINOSITY');
     queue.on('message', (data) => {
       this._readQueueData(data);
     });
+    this.setState({tempQueue:queue})
+  }
+
+  _bindKey = (key) =>{
+    let queue = this.state.tempQueue
+    queue.bind(this.state.exchange, key);
+    this.setState({tempQueue:queue})
+    if(key == 'TEMPERATURE')
+      this.setState({tempSwitch:true})
+    else if(key == 'LUMINOSITY')
+      this.setState({lumSwitch:true})
+    else if(key == 'GAS')
+      this.setState({gasSwitch:true})
+  }
+
+  _unbindKey = (key) =>{
+    let queue = this.state.tempQueue
+    queue.unbind(this.state.exchange, key);
+    this.setState({tempQueue:queue})
+    if(key == 'TEMPERATURE')
+      this.setState({tempSwitch:false})
+    else if(key == 'LUMINOSITY')
+      this.setState({lumSwitch:false})
+    else if(key == 'GAS')
+      this.setState({gasSwitch:false})
   }
 
   _readQueueData = (data) => {
@@ -98,10 +132,6 @@ export default class App extends Component{
     return result;
   }
 
-  componentDidMount = () => {
-    this._getIpPort();
-  }
-  
   _onFetchSensorSuccess = (suc) => {
     msgObj = sensor_pb.CommandMessage.deserializeBinary(suc);
     switch (msgObj.getParameter().getId()){
@@ -121,9 +151,9 @@ export default class App extends Component{
 
   _onConnectPressed = () => {
     if (!this.state.isConnected){
-    this.state.connection.connect();
+      this._connect()
     }else {
-      this.state.connection.close();
+      this._disconnect()
     }
   }
 
@@ -236,20 +266,36 @@ export default class App extends Component{
             </TouchableOpacity>
           </View>
         </Header>
-        <ScrollView style ={styles.content}>
-          <View style={{alignItems:'center', justifyContent:'center', flex:1}}>
+        <View style ={styles.content}>
+          <View style={{alignItems:'center', justifyContent:'center', flex:1, marginTop:20}}>
+            <View style={{...styles.sensorValues,width:200}}>
+              <Text style = {styles.buttonText}>Gás</Text>
+            <Text style = {styles.valueText}>{this.state.gasValue}</Text>
+            </View>
+            <Switch
+                disabled={!this.state.isConnected} 
+                onValueChange = {(value) => value?this._bindKey('GAS'):this._unbindKey('GAS')}
+                style={{marginTop:5}}/>
             <View style ={styles.sensorView}>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Temperatura</Text>
                 <Text style = {styles.valueText}>{this.state.tempValue.toFixed(2)}ºC</Text>
+                <Switch
+                disabled={!this.state.isConnected} 
+                onValueChange = {(value) => value?this._bindKey('TEMPERATURE'):this._unbindKey('TEMPERATURE')}
+                style={{marginTop:5}}/>
               </View>
               <View style={styles.sensorValues}>
                 <Text style = {styles.buttonText}>Luminosidade</Text>
                 <Text style = {styles.valueText}>{Math.floor(this.state.lumValue)}%</Text>
+                <Switch
+                disabled={!this.state.isConnected} 
+                onValueChange = {(value) => value?this._bindKey('LUMINOSITY'):this._unbindKey('LUMINOSITY')}
+                style={{marginTop:5}}/>
               </View>
             </View>
           </View>
-        </ScrollView>
+        </View>
       </Container>
     );
   }
