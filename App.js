@@ -3,12 +3,10 @@ import { StyleSheet, Text, View, TouchableOpacity, Image, Switch, TextInput, Asy
 import { Container, Header, Title, Body, Left, Content, Right} from 'native-base'
 import { byteStringToByteArray, byteToString, convertByte } from './src/util/decode'
 import { Icon, Button } from 'react-native-elements';
-import {NativeModules} from 'react-native';
 import Modal from 'react-native-modal';
 import { Connection, Exchange, Queue } from 'react-native-rabbitmq';
 
 const sensor_pb = require('./src/util/sensor_pb.js');
-
 export default class App extends Component{
   constructor(props) {
     super(props);
@@ -45,8 +43,8 @@ export default class App extends Component{
       alert('error')
     });
 
-    connection.on('connected', (event) => {
-      alert('deu bom ');
+  connection.on('connected', (event) => {
+      this.setState({isConnected:true});
       let exchange = new Exchange(connection, {
         name: 'DIST',
         type: 'direct',
@@ -57,7 +55,6 @@ export default class App extends Component{
       console.log(exchange)
       this.setState({
         connection:connection,
-        isConnected:true,
         exchange:exchange
       }, () =>{
         this._setupQueue();
@@ -90,6 +87,7 @@ export default class App extends Component{
     queue.bind(this.state.exchange, 'TEMPERATURE');
     queue.bind(this.state.exchange, 'GAS');
     queue.bind(this.state.exchange, 'LUMINOSITY');
+    this.setState({queue:queue});
     queue.on('message', (data) => {
       this._readQueueData(data);
     });
@@ -120,8 +118,19 @@ export default class App extends Component{
       this.setState({gasSwitch:false})
   }
 
+  _unpack(str) {
+    var bytes = [];
+    for(var i = 0; i < str.length; i++) {
+        var char = str.charCodeAt(i);
+        bytes.push(char >>> 8);
+        bytes.push(char & 0xFF);
+    }
+    return bytes;
+  }
+
   _readQueueData = (data) => {
-    this._onFetchSensorSuccess(data.message);
+    let bytes = byteStringToByteArray(data.message);
+    this._onFetchSensorSuccess(new Uint8Array(bytes));
   }
 
   _bin2String(array) {
