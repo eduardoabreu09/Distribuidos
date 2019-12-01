@@ -3,32 +3,14 @@ import { StyleSheet, Text, View, TouchableOpacity, Image, Switch, TextInput, Asy
 import { Container, Header, Title, Body, Left, Content, Right} from 'native-base'
 import { byteStringToByteArray, byteToString, convertByte } from './src/util/decode'
 import { Icon, Button } from 'react-native-elements';
-import {NativeModules} from 'react-native';
 import Modal from 'react-native-modal';
 import { Connection, Exchange, Queue } from 'react-native-rabbitmq';
-var tcpClient = NativeModules.TCPClient;
-var time;
-var reset;
-const config = {
-  host:'ec2-3-89-88-24.compute-1.amazonaws.com',
-  port:5672,
-  username:'dist',
-  password:'dist',
-  virtualhost:'/'
-}
+
 const sensor_pb = require('./src/util/sensor_pb.js');
 var base64 = require('base-64');
 export default class App extends Component{
   constructor(props) {
     super(props);
-    let connection = new Connection({
-      host:'ec2-3-89-88-24.compute-1.amazonaws.com',
-      port:5672,
-      username:'dist',
-      password:'dist',
-      virtualhost:'/',
-      ttl: 5000
-    });
     this.state = {
       isConnected:false,
       lightIsOn:false,
@@ -38,36 +20,52 @@ export default class App extends Component{
       modalVis: false,
       ip: "127.0.0.1",
       port: 1234,
-      connection: connection,
+      connection:null,
       exchange:null,
       queue: null,
       gasSwitch:false,
       tempSwitch:false,
-      lumSwitch:false
+      lumSwitch:false,
+      first:true
      };
-  connection.on('error', (event) => {
+    
+  };
+
+  componentWillMount = () =>{
+    this._connect();
+  }
+
+  _connect = () => {
+    let connection = new Connection({
+      host:'ec2-3-89-88-24.compute-1.amazonaws.com',
+      port:5672,
+      username:'dist',
+      password:'dist',
+      virtualhost:'/',
+      ttl: 5000
+    });
+    let exchange = new Exchange(connection, {
+      name: 'DIST',
+      type: 'direct',
+      durable: false,
+      autoDelete: false,
+      internal: false
+    });
+
+    connection.on('error', (event) => {
       alert('error')
     });
 
-    connection.on('cone')
-
-  connection.on('connected', (event) => {
-      this.setState({isConnected:true});
-      let exchange = new Exchange(connection, {
-        name: 'DIST',
-        type: 'direct',
-        durable: false,
-        autoDelete: false,
-        internal: false
-      });
-      this.setState({
-        connection:connection,
-        exchange:exchange
-      });
+    connection.on('connected', (event) => {
       this._setupQueue();
     });
-     
-  };
+
+    this.setState({
+      connection,
+      exchange
+    })
+    return connection
+  }
 
   componentWillUnmount(){
     if(this.state.connection != null){
@@ -76,7 +74,7 @@ export default class App extends Component{
   }
 
   _setupQueue(){
-    let queue = new Queue( this.state.connection, {
+    let queue = new Queue(this.state.connection, {
       name: '',
       passive: false,
       durable: true,
@@ -92,7 +90,8 @@ export default class App extends Component{
       queue:queue,
       gasSwitch:true,
       tempSwitch:true,
-      lumSwitch:true
+      lumSwitch:true,
+      isConnected:true
     });
     queue.on('message', (data) => {
       this._readQueueData(data);
@@ -173,15 +172,30 @@ export default class App extends Component{
   }
 
   _onConnectPressed = () => {
-    if (!this.state.isConnected){
+    if(this.state.first)
+    {
       this.state.connection.connect();
+      this.setState({first:false})
+    }
+    else if (!this.state.isConnected){
+      this._connect().connect();
     }else {
-      this.state.connection.close()
+      let queue = this.state.queue;
+      queue.unbind(this.state.exchange, 'TEMPERATURE');
+      queue.unbind(this.state.exchange, 'LUMINOSITY');
+      queue.unbind(this.state.exchange, 'GAS');
+      this.state.connection.removeon('connected')
+      this.state.connection.removeon('error')
+      this.state.connection.close();
+      this.state.connection.clear();
       this.setState({
         isConnected:false,
+        connection:null,
+        exchange:null,
         tempValue: 0,
         lumValue: 0,
         gasValue: 0,
+        queue:null,
         gasSwitch:false,
         tempSwitch:false,
         lumSwitch:false
@@ -290,12 +304,13 @@ export default class App extends Component{
             </Title>
           </View>
           <View>
-          <TouchableOpacity
+          <View
             style ={styles.iconTouch}
-            onPress= { () => {this.setState({modalVis:true})} }>
+            //onPress= { () => {this.setState({modalVis:true})} }
+            >
               <Icon name="settings"
-              color = "#fff"/>
-            </TouchableOpacity>
+              color = "#014e85"/>
+            </View>
           </View>
         </Header>
         <View style ={styles.content}>
